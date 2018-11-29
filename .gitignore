@@ -1,0 +1,6 @@
+# Created by .ignore support plugin (hsz.mobi)
+.idea/
+my-first-vertx-app/.idea/
+my-first-vertx-app/.vertx/
+my-first-vertx-app/my-first-vertx-app.iml
+my-first-vertx-app/target/
