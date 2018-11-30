@@ -1,12 +1,13 @@
 package io.vertx.book.http;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.codec.BodyCodec;
+import io.vertx.rxjava.core.AbstractVerticle;
+import io.vertx.rxjava.ext.web.Router;
+import io.vertx.rxjava.ext.web.RoutingContext;
+import io.vertx.rxjava.ext.web.client.HttpRequest;
+import io.vertx.rxjava.ext.web.client.WebClient;
+import io.vertx.rxjava.ext.web.codec.BodyCodec;
+import rx.Single;
 
 /**
  * mvn compile vertx:run
@@ -30,17 +31,32 @@ public class HelloConsumerMicroservice extends AbstractVerticle {
     }
 
     private void invokeMyFirstMicroservice(RoutingContext rc) {
-        HttpRequest<JsonObject> request = client
-                .get(8080, "localhost", "/vert")
+        HttpRequest<JsonObject> request1 = client
+                .get(8080, "localhost", "/Luke")
                 .as(BodyCodec.jsonObject());
 
-        request.send(event -> {
-            if (event.failed()) {
-                rc.fail(event.cause());
-            } else {
-                rc.response().end(event.result().body().encode());
-            }
-        });
+        HttpRequest<JsonObject> request2 = client
+                .get(8080, "localhost", "/Leia")
+                .as(BodyCodec.jsonObject());
+
+
+        Single<JsonObject> s1 = request1.rxSend()
+                .map(jsonObjectHttpResponse -> jsonObjectHttpResponse.body());
+
+        Single<JsonObject> s2 = request2.rxSend()
+                .map(jsonObjectHttpResponse -> jsonObjectHttpResponse.body());
+
+        Single.zip(s1, s2, (entries, entries2) -> {
+            return new JsonObject()
+                    .put("luke", entries.getString("message"))
+                    .put("leia", entries2.getString("message"));
+        })
+                .subscribe(
+                        entries -> rc.response().end(entries.encodePrettily()),
+                        throwable -> {
+                            throwable.printStackTrace();
+                            rc.response().setStatusCode(500).end(throwable.getMessage());
+                        });
     }
 
 }
